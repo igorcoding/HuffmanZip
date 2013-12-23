@@ -1,3 +1,12 @@
+# VS
+compression/Debug
+compression/Release
+compression/compression/Debug
+compression/compression/Release
+*.sdf
+*.suo
+
+
 # Compiled Object files
 *.slo
 *.lo
