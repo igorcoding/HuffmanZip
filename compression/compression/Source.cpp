@@ -124,9 +124,9 @@ int main(int argc, const char* argv[])
 		}
 
 	}
-/*
 
-	auto file = "test3.txt";
+	/*
+	auto file = "test2.docx";
 	HuffmanZip hzip;
 	try
 	{

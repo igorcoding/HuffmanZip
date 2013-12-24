@@ -18,7 +18,7 @@ std::string HuffmanZip::encode(const char* filename)
 {
 	_filename = filename;
 
-	std::ifstream ifs(_filename);
+	std::ifstream ifs(_filename, std::ifstream::in | std::ifstream::binary);
 
 	if (!ifs)
 		throw FileNotFoundException("File \'" + _filename + "\' not found.\n");
@@ -45,8 +45,10 @@ bool HuffmanZip::countFreqs(std::vector<int>* freqs)
 {
 	bool good = true;
 	int n = 0;
+	int readBytes = 0;
+
 	std::ifstream ifs;
-	ifs.open(_filename);
+	ifs.open(_filename, std::ifstream::in | std::ifstream::binary);
 
 	if (!ifs)
 		throw FileNotFoundException("File \'" + _filename + "\' not found");
@@ -61,6 +63,7 @@ bool HuffmanZip::countFreqs(std::vector<int>* freqs)
 				good = false;
 			break;
 		}
+		++readBytes;
 		n = 1;
 		int id = sym >= 0 ? sym : (_maxAlphabetSize + sym);
 		++(*freqs)[id];
@@ -75,12 +78,15 @@ void HuffmanZip::encodeContents(std::ifstream& ifs, std::ofstream& ofs) const
 	auto codes = _tree->getCodes();
 
 	byte currentByte = 0;
-	byte n = 0;
-	byte bytes = 0;
+	int n = -1;
+	byte writtenBytes = 0;
 	while (!ifs.eof())
 	{
 		char sym = 0;
 		ifs.get(sym);
+		if (!ifs.good())
+			break;
+
 		int id = sym >= 0 ? sym : (_maxAlphabetSize + sym);
 
 		auto code = codes[id];
@@ -92,26 +98,27 @@ void HuffmanZip::encodeContents(std::ifstream& ifs, std::ofstream& ofs) const
 			}
 			else if (code[i] == '1')
 			{
-				currentByte |= (1 << (7-n));
+				currentByte |= (1 << (7-(n+1)));
 				++n;
 			}
 			else
 				throw std::exception();
 
-			if (n >= 8)
+			if (n >= 7)
 			{
 				ofs.write(reinterpret_cast<const char*>(&currentByte), sizeof (currentByte));
 				currentByte = 0;
-				n = 0;
-				++bytes;
+				n = -1;
+				++writtenBytes;
 			}
 		}
 	}
-	if (n < 8)
+	if (n < 8 && n != -1)
 	{
 		ofs.write(reinterpret_cast<const char*>(&currentByte), sizeof (currentByte));
 		currentByte = 0;
-		n = 0;
+		n = -1;
+		++writtenBytes;
 	}
 
 	ifs.close();
@@ -128,8 +135,8 @@ std::string HuffmanZip::decode(const char* filename)
 	if (!ifs)
 		throw FileNotFoundException("File \'" + _filename + "\' not found");
 
-	char N; // 1 byte
-	ifs.get(N);
+	dbyte N; // 1 byte
+	ifs.read(reinterpret_cast<char*>(&N), 2);
 
 	if (!ifs.good())
 		throw FileIsEmptyException("File \'" + _filename + "\' is empty.\n");
@@ -159,7 +166,7 @@ std::string HuffmanZip::decode(const char* filename)
 	_tree->buildFromBytes(tree, alphabet);
 
 	auto hzipped = getHzipFilename(".decoded");
-	std::ofstream ofs(hzipped, std::ofstream::out);
+	std::ofstream ofs(hzipped, std::ofstream::out | std::ofstream::binary);
 
 	_tree->decode(ifs, static_cast<byte>(extraBits), ofs);
 

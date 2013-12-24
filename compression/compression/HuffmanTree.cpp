@@ -107,14 +107,14 @@ std::shared_ptr<HuffmanTree::Node> HuffmanTree::merge(const std::shared_ptr<Node
 
 
 // Format: N|alphabet|L|tree
-// N: number of charaters in alphabet = 1 byte
+// N: number of charaters in alphabet = 2 bytes
 // alphabet: N characters = N bytes
 // L: length of the tree = 2 bytes
 // tree: DFS tree representation = L bytes
 // extraBits: extra bits that don't fit into bytes = 1 byte
 void HuffmanTree::getTree(std::ofstream& ofs) const 
 {
-	auto N = static_cast<byte>(_codes.size());
+	auto N = static_cast<dbyte>(_codes.size());
 	ofs.write(reinterpret_cast<const char*>(&N), sizeof(N));
 
 	std::string tree;
@@ -286,7 +286,8 @@ void HuffmanTree::decode(std::ifstream& input, byte extraBitsCount, std::ofstrea
 			}
 			if (node->letter != Node::NoLetter)
 			{
-				ofs << (char) node->letter;
+				auto ch = static_cast<char>(node->letter);
+				ofs.write(reinterpret_cast<const char*>(&ch), sizeof(char));
 				node = _root;
 			}
 		}
